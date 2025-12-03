@@ -1,0 +1,63 @@
+const express = require("express");
+const router = express.Router();
+const { check } = require("express-validator");
+const { auth: authenticate } = require("../middleware/auth");
+const { checkRole } = require("../middleware/roleCheck");
+
+// Import controller
+const controller = require("../controllers/remoteAttendanceController");
+
+// Debug log
+console.log(
+  "Remote Attendance Routes: requestRemoteWork exists:",
+  typeof controller.requestRemoteWork === "function"
+);
+console.log(
+  "Remote Attendance Routes: getUserRemoteRequests exists:",
+  typeof controller.getUserRemoteRequests === "function"
+);
+
+// User routes for remote attendance
+router.post(
+  "/request",
+  [
+    authenticate,
+    check("request_date", "Request date is required").isDate(),
+    check("reason", "Reason is required").notEmpty(),
+  ],
+  controller.requestRemoteWork
+);
+
+router.get("/my-requests", authenticate, controller.getUserRemoteRequests);
+
+// Admin routes for managing remote attendance
+router.get(
+  "/pending",
+  authenticate,
+  checkRole(["admin", "super_admin"]),
+  controller.getPendingRequests
+);
+
+router.put(
+  "/:id/approve",
+  authenticate,
+  checkRole(["admin", "super_admin"]),
+  controller.approveRemoteRequest
+);
+
+router.put(
+  "/:id/reject",
+  authenticate,
+  checkRole(["admin", "super_admin"]),
+  controller.rejectRemoteRequest
+);
+
+// History requests (for history tab)
+router.get(
+  "/history",
+  authenticate,
+  checkRole(["admin", "super_admin"]),
+  controller.getRemoteRequestHistory
+);
+
+module.exports = router;
